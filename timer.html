@@ -50,21 +50,23 @@
     font: 400 13px/1.35 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .card { width: 100%; max-width: 320px; padding: 18px; box-sizing: border-box;
-          display: flex; flex-direction: column; align-items: center; gap: 13px; }
-  .time { font-size: clamp(46px, 21vw, 66px); font-weight: 300; letter-spacing: -.02em;
+  /* Kept compact on purpose: the whole widget has to fit a default-height Notion embed,
+     otherwise the embed grows its own scrollbar. */
+  .card { width: 100%; max-width: 320px; padding: 14px; box-sizing: border-box;
+          display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .time { font-size: clamp(42px, 19vw, 56px); font-weight: 300; letter-spacing: -.02em;
           font-variant-numeric: tabular-nums; line-height: 1; }
-  .label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-top: -7px; }
+  .label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-top: -6px; }
   .bar { width: 100%; max-width: 220px; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
   .bar > i { display: block; height: 100%; width: 100%; background: var(--accent);
              transform: scaleX(0); transform-origin: left center; transition: transform .4s linear; }
-  .modes { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 190px; }
-  .mode { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--surface); color: var(--muted);
+  .modes { display: flex; flex-direction: column; gap: 5px; width: 100%; max-width: 190px; }
+  .mode { border: 0; border-radius: 999px; padding: 7px 14px; background: var(--surface); color: var(--muted);
           font: inherit; font-size: 12.5px; cursor: pointer; }
   .mode:hover { background: var(--surface-hover); color: var(--ink); }
   .mode[aria-pressed="true"] { background: var(--surface-hover); color: var(--ink); font-weight: 600; }
   .controls { display: flex; gap: 10px; }
-  .btn { border: 0; border-radius: 999px; padding: 9px 22px; min-width: 88px; font: inherit; font-weight: 600;
+  .btn { border: 0; border-radius: 999px; padding: 8px 22px; min-width: 88px; font: inherit; font-weight: 600;
          font-size: 13px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
   .btn:hover { filter: brightness(1.07); }
   .btn.ghost { background: var(--surface); color: var(--ink); font-weight: 500; }

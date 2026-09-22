@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>Whiteboard</title>
+<style>
+  /* Self-contained drawing canvas: no network calls, no tracking.
+     The drawing is kept in this browser (localStorage) and can be saved as a PNG. */
+  :root { --bar: #f4f1ec; --line: #d9d2c7; --ink: #2b2b2b; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #fff; touch-action: none; }
+  #wrap { position: relative; height: 100%; display: flex; flex-direction: column; }
+  canvas { flex: 1; width: 100%; background: #fff; cursor: crosshair; display: block; }
+  #bar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 10px;
+    background: var(--bar); border-top: 1px solid var(--line);
+    font: 13px/1 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink);
+    flex-wrap: wrap;
+  }
+  .swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+  .swatch.on { border-color: #2b2b2b; }
+  .size { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--line); background: #fff;
+          cursor: pointer; display: grid; place-items: center; }
+  .size.on { background: #e7e0d5; }
+  .size i { display: block; background: #2b2b2b; border-radius: 50%; }
+  button {
+    font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid var(--line);
+    background: #fff; color: var(--ink); cursor: pointer;
+  }
+  button:hover { background: #ece6dc; }
+  button.primary { background: #7a3a26; border-color: #7a3a26; color: #fff; }
+  button.primary:hover { background: #8d452e; }
+  .sep { flex: 1; }
+  .hint { color: #8a8378; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c" aria-label="Whiteboard"></canvas>
+  <div id="bar">
+    <span id="colors"></span>
+    <span id="sizes"></span>
+    <button id="eraser" title="Eraser">Eraser</button>
+    <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
+    <button id="clear">Clear</button>
+    <span class="sep"></span>
+    <span class="hint" id="hint">Saved in this browser</span>
+    <button class="primary" id="save">Save PNG</button>
+  </div>
+</div>
+<script>
+(function () {
+  var canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
+  var COLORS = ["#2b2b2b", "#c0392b", "#1f7a4d", "#1f5fa8", "#d98324", "#7a3a26"];
+  var SIZES = [2, 4, 8];
+  var colour = COLORS[0], width = SIZES[1], erasing = false, drawing = false, dpr = 1;
+  var strokes = [], current = null;
+
+  // Toolbar
+  var cWrap = document.getElementById("colors");
+  COLORS.forEach(function (col, i) {
+    var b = document.createElement("span");
+    b.className = "swatch" + (i === 0 ? " on" : "");
+    b.style.background = col;
+    b.title = "Pen colour";
+    b.onclick = function () {
+      colour = col; erasing = false;
+      [].forEach.call(cWrap.children, function (el) { el.classList.remove("on"); });
+      b.classList.add("on");
+    };
+    cWrap.appendChild(b);
+  });
+  var sWrap = document.getElementById("sizes");
+  SIZES.forEach(function (s, i) {
+    var b = document.createElement("span");
+    b.className = "size" + (i === 1 ? " on" : "");
+    b.title = "Pen size";
+    var dot = document.createElement("i");
+    dot.style.width = dot.style.height = Math.max(4, s + 2) + "px";
+    b.appendChild(dot);
+    b.onclick = function () {
+      width = s;
+      [].forEach.call(sWrap.children, function (el) { el.classList.remove("on"); });
+      b.classList.add("on");
+    };
+    sWrap.appendChild(b);
+  });
+
+  function resize() {
+    dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.clientWidth * dpr;
+    canvas.height = canvas.clientHeight * dpr;
+    redraw();
+  }
+
+  function redraw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+    ctx.lineCap = ctx.lineJoin = "round";
+    strokes.forEach(function (s) {
+      ctx.strokeStyle = s.erase ? "#fff" : s.colour;
+      ctx.lineWidth = s.erase ? s.width * 6 : s.width;
+      ctx.beginPath();
+      s.points.forEach(function (p, i) { i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]); });
+      if (s.points.length === 1) { ctx.lineTo(s.points[0][0] + 0.1, s.points[0][1]); }
+      ctx.stroke();
+    });
+  }
+
+  function pos(e) {
+    var r = canvas.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  }
+
+  canvas.addEventListener("pointerdown", function (e) {
+    canvas.setPointerCapture(e.pointerId);
+    drawing = true;
+    current = { colour: colour, width: width, erase: erasing, points: [pos(e)] };
+    strokes.push(current);
+    redraw();
+  });
+  canvas.addEventListener("pointermove", function (e) {
+    if (!drawing) return;
+    current.points.push(pos(e));
+    redraw();
+  });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(function (ev) {
+    canvas.addEventListener(ev, function () { if (drawing) { drawing = false; save(); } });
+  });
+
+  document.getElementById("eraser").onclick = function () {
+    erasing = !erasing;
+    this.style.background = erasing ? "#e7e0d5" : "";
+  };
+  document.getElementById("undo").onclick = function () { strokes.pop(); redraw(); save(); };
+  document.getElementById("clear").onclick = function () {
+    if (strokes.length && !confirm("Clear the whole board?")) return;
+    strokes = []; redraw(); save();
+  };
+  document.getElementById("save").onclick = function () {
+    var a = document.createElement("a");
+    a.download = "whiteboard.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  };
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { strokes.pop(); redraw(); save(); }
+  });
+
+  // Persistence: each embed keeps its own board, kept only in this browser.
+  var KEY = "academic-os-whiteboard" + (location.search || "");
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(strokes.slice(-800))); }
+    catch (err) { document.getElementById("hint").textContent = "Not saved (storage blocked)"; }
+  }
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (raw) strokes = JSON.parse(raw) || [];
+  } catch (err) { /* private mode: start empty */ }
+
+  window.addEventListener("resize", resize);
+  resize();
+})();
+</script>
+</body>
+</html>

@@ -4,7 +4,7 @@
 - `clock-us.html`: the same clock, fixed to US format ("5:03:03 PM · Tue, Sep 22"). Used on the US edition's Home.
 - `clock-intl.html` (= `clock-24.html`): the same clock, fixed to 24-hour English ("17:03:03 · Tue 22 Sep"). Used on the International edition's Home.
   The edition files format the text themselves, because Notion's desktop app can ignore a requested locale.
-- `timer.html`: Pomodoro timer with Pomodoro 25, Short break 5 and Long break 15, plus Start/Reset (the right column on Home).
+- `timer.html`: focus timer with Study 25, Short break 5 and Long break 15, plus Start/Reset (the right column on Home). Like the clock, it paints Notion's own background and takes the same `?theme=` override; its spacing scales with the embed's height, so it fits whatever size the block is dragged to.
 - `whiteboard.html`: a drawing board with six colours, three pen sizes, eraser, undo and Save PNG. The drawing is kept in the viewer's own browser (localStorage); nothing is uploaded.
 - `focus-timer.html`: a compact widget with the clock and timer combined (Focus 25 / Deep 50 / Break 5 / Long break 15).
 

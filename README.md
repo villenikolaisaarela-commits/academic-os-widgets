@@ -1,11 +1,26 @@
-# Optional widgets: Clock & Focus Timer
+# Optional widgets: Clock, Focus Timer & Whiteboard
 
 - `clock.html`: analog clock with digital time and date. Language and 12/24-hour format follow the viewer's device (`?h=12`, `?h=24` or `?lang=` force them).
 - `clock-us.html`: the same clock, fixed to US format ("5:03:03 PM · Tue, Sep 22"). Used on the US edition's Home.
 - `clock-intl.html` (= `clock-24.html`): the same clock, fixed to 24-hour English ("17:03:03 · Tue 22 Sep"). Used on the International edition's Home.
   The edition files format the text themselves, because Notion's desktop app can ignore a requested locale.
 - `timer.html`: Pomodoro timer with Pomodoro 25, Short break 5 and Long break 15, plus Start/Reset (the right column on Home).
+- `whiteboard.html`: a drawing board with six colours, three pen sizes, eraser, undo and Save PNG. The drawing is kept in the viewer's own browser (localStorage); nothing is uploaded.
 - `focus-timer.html`: a compact widget with the clock and timer combined (Focus 25 / Deep 50 / Break 5 / Long break 15).
+
+## The clock's background and theme
+The clock paints **the same background Notion uses** — `#ffffff` in light mode, `#191919` in
+dark mode — so the embed blends into the page instead of looking like a card.
+
+A `background: transparent` page does **not** work here: an embedded frame is painted on the
+browser's own base canvas, which is white, so the Notion page never shows through. On a dark
+Notion page that produced light ink on white and the clock was unreadable.
+
+An embedded page also cannot read Notion's own theme, only the viewer's **device** setting.
+If someone runs Notion in dark mode while their device is in light mode (or the other way
+round), the clock shows as a pale or dark rectangle. Add `?theme=dark` or `?theme=light` to
+the embed URL to pin it, e.g.
+`https://<you>.github.io/academic-os-widgets/clock-us.html?theme=dark`.
 
 `focus-timer.html` is a single, self-contained HTML file. It makes **no network requests**, stores nothing, follows the system light/dark theme, and plays a short beep when a session ends.
 

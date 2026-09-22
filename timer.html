@@ -5,56 +5,85 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Focus Timer</title>
 <style>
-  /* Warm, theme-independent card so it reads the same on Notion light and dark. */
+  /* The timer has no card of its own: it paints the same background Notion uses, so the
+     embed reads as part of the page.
+
+     A `background: transparent` page does NOT show the Notion page behind it — an embedded
+     frame is painted on the browser's own base canvas, which is white. That is why --bg has
+     to match Notion exactly: #ffffff in light mode, #191919 in dark mode.
+
+     An embedded page also cannot read Notion's theme, only the viewer's device setting, so
+     ?theme=dark / ?theme=light pins it for anyone whose Notion theme differs from their device. */
   :root {
-    --ink: #3b2116; --ink-soft: rgba(59,33,22,.62);
-    --chip: rgba(255,255,255,.42); --chip-on: #ffffff;
-    --line: rgba(59,33,22,.18);
+    color-scheme: light;
+    --bg: #ffffff;
+    --ink: #2a2724; --muted: #6b645b;
+    --accent: #b0592f; --on-accent: #ffffff;
+    --surface: rgba(42,39,36,.055);
+    --surface-hover: rgba(42,39,36,.10);
+    --line: rgba(42,39,36,.14);
   }
-  html, body { margin: 0; height: 100%; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #191919;
+      --ink: #f5f3f0; --muted: #9a958d;
+      --accent: #d08a63; --on-accent: #191919;
+      --surface: rgba(245,243,240,.07);
+      --surface-hover: rgba(245,243,240,.13);
+      --line: rgba(245,243,240,.16);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #191919;
+    --ink: #f5f3f0; --muted: #9a958d;
+    --accent: #d08a63; --on-accent: #191919;
+    --surface: rgba(245,243,240,.07);
+    --surface-hover: rgba(245,243,240,.13);
+    --line: rgba(245,243,240,.16);
+  }
+  html, body { margin: 0; height: 100%; background: var(--bg); }
   body {
     display: flex; align-items: center; justify-content: center;
-    background:
-      radial-gradient(90% 70% at 18% 8%, #fdf6f1 0%, rgba(253,246,241,0) 60%),
-      linear-gradient(155deg, #f6ded0 0%, #e9b191 45%, #cf7f57 100%);
     color: var(--ink);
     font: 400 13px/1.35 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  .card { width: 100%; max-width: 320px; padding: 20px 18px; box-sizing: border-box;
-          display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .card { width: 100%; max-width: 320px; padding: 18px; box-sizing: border-box;
+          display: flex; flex-direction: column; align-items: center; gap: 13px; }
   .time { font-size: clamp(46px, 21vw, 66px); font-weight: 300; letter-spacing: -.02em;
           font-variant-numeric: tabular-nums; line-height: 1; }
-  .label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin-top: -8px; }
+  .label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-top: -7px; }
   .bar { width: 100%; max-width: 220px; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
-  .bar > i { display: block; height: 100%; width: 100%; background: var(--ink); opacity: .55;
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--accent);
              transform: scaleX(0); transform-origin: left center; transition: transform .4s linear; }
-  .modes { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 190px; }
-  .mode { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--chip); color: var(--ink);
-          font: inherit; font-size: 12.5px; cursor: pointer; transition: background .15s ease; }
-  .mode:hover { background: rgba(255,255,255,.62); }
-  .mode[aria-pressed="true"] { background: var(--chip-on); font-weight: 600; box-shadow: 0 1px 6px rgba(59,33,22,.14); }
+  .modes { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 190px; }
+  .mode { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--surface); color: var(--muted);
+          font: inherit; font-size: 12.5px; cursor: pointer; }
+  .mode:hover { background: var(--surface-hover); color: var(--ink); }
+  .mode[aria-pressed="true"] { background: var(--surface-hover); color: var(--ink); font-weight: 600; }
   .controls { display: flex; gap: 10px; }
   .btn { border: 0; border-radius: 999px; padding: 9px 22px; min-width: 88px; font: inherit; font-weight: 600;
-         font-size: 13px; cursor: pointer; background: var(--chip-on); color: var(--ink);
-         box-shadow: 0 1px 6px rgba(59,33,22,.16); }
-  .btn.ghost { background: var(--chip); box-shadow: none; font-weight: 500; }
+         font-size: 13px; cursor: pointer; background: var(--accent); color: var(--on-accent); }
+  .btn:hover { filter: brightness(1.07); }
+  .btn.ghost { background: var(--surface); color: var(--ink); font-weight: 500; }
+  .btn.ghost:hover { background: var(--surface-hover); filter: none; }
   .btn:hover { transform: translateY(-1px); }
-  .btn, .mode { transition: transform .12s ease, background .15s ease; }
-  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-  .dots { display: flex; gap: 6px; align-items: center; min-height: 10px; }
-  .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(59,33,22,.22); display: block; }
-  .dots i.on { background: var(--ink); }
-  .meta { font-size: 11px; color: var(--ink-soft); letter-spacing: .04em; }
+  .btn, .mode { transition: transform .12s ease, background .15s ease, color .15s ease, filter .15s ease; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .dots { display: flex; gap: 6px; align-items: center; min-height: 9px; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: block; }
+  .meta { font-size: 11px; color: var(--muted); letter-spacing: .04em; }
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="time" id="time" role="timer" aria-live="polite">25:00</div>
-  <div class="label" id="label">Focus</div>
+  <div class="time" id="time">25:00</div>
+  <div class="label" id="label">Study</div>
   <div class="bar" aria-hidden="true"><i id="bar"></i></div>
   <div class="modes" role="group" aria-label="Timer mode">
-    <button class="mode" data-min="25" data-label="Focus" aria-pressed="true">pomodoro · 25 min</button>
+    <button class="mode" data-min="25" data-label="Study" aria-pressed="true">study · 25 min</button>
     <button class="mode" data-min="5" data-label="Short break" aria-pressed="false">short break · 5 min</button>
     <button class="mode" data-min="15" data-label="Long break" aria-pressed="false">long break · 15 min</button>
   </div>
@@ -63,22 +92,22 @@
     <button class="btn ghost" id="reset">reset</button>
   </div>
   <div class="dots" id="dots" aria-hidden="true"></div>
-  <div class="meta" id="meta">no sessions yet today</div>
+  <div class="meta" id="meta" role="status" aria-live="polite">no sessions yet today</div>
 </div>
 <script>
 (function () {
-  var total = 1500, left = 1500, running = false, endAt = 0, ticker = null, done = 0, label = "Focus";
+  // ?theme=dark / ?theme=light pins the colour scheme (see the note in the stylesheet).
+  var t = new URLSearchParams(location.search).get("theme");
+  if (t === "dark" || t === "light") document.documentElement.dataset.theme = t;
+
+  var total = 1500, left = 1500, running = false, endAt = 0, ticker = null, done = 0, label = "Study";
   var $ = function (id) { return document.getElementById(id); };
   function fmt(s) { var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r; }
 
   function paintDots() {
     var wrap = $("dots");
     wrap.textContent = "";
-    for (var i = 0; i < Math.min(done, 8); i++) {
-      var d = document.createElement("i");
-      d.className = "on";
-      wrap.appendChild(d);
-    }
+    for (var i = 0; i < Math.min(done, 8); i++) wrap.appendChild(document.createElement("i"));
     $("meta").textContent = done === 0 ? "no sessions yet today"
       : done + (done === 1 ? " session today" : " sessions today");
   }
@@ -113,7 +142,7 @@
       left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
       if (left === 0) {
         stop();
-        if (label === "Focus") { done++; paintDots(); }
+        if (label === "Study") { done++; paintDots(); }
         left = total;
         beep();
       }

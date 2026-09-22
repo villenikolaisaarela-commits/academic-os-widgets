@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Focus Timer</title>
+<style>
+  :root {
+    --bg: #f7f6f3; --fg: #37352f; --muted: #787774; --line: #e3e2de;
+    --accent: #2f6f5e; --accent-soft: #e4efe9; --btn: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #252525; --fg: #e6e6e4; --muted: #9b9a97; --line: #373737;
+      --accent: #7fbfa8; --accent-soft: #2c3a35; --btn: #2f2f2f;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--fg);
+    font: 14px/1.4 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    display: flex; align-items: center; justify-content: center; padding: 12px;
+  }
+  .card { width: 100%; max-width: 360px; text-align: center; }
+  .clock { font-size: 13px; color: var(--muted); letter-spacing: .02em; margin-bottom: 10px; }
+  .clock b { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .modes { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; flex-wrap: wrap; }
+  .mode {
+    border: 1px solid var(--line); background: transparent; color: var(--muted);
+    border-radius: 999px; padding: 4px 10px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .mode[aria-pressed="true"] { background: var(--accent-soft); color: var(--fg); border-color: transparent; }
+  .time {
+    font-size: clamp(40px, 16vw, 64px); font-weight: 600; letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums; margin: 4px 0 6px;
+  }
+  .bar { height: 4px; background: var(--line); border-radius: 4px; overflow: hidden; margin: 0 8px 12px; }
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--accent); transform: scaleX(0); transform-origin: left center; transition: transform .5s linear; }
+  .controls { display: flex; gap: 8px; justify-content: center; }
+  .btn {
+    border: 1px solid var(--line); background: var(--btn); color: var(--fg);
+    border-radius: 8px; padding: 7px 16px; font: inherit; cursor: pointer; min-width: 84px;
+  }
+  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+  @media (prefers-color-scheme: dark) { .btn.primary { color: #10231d; } }
+  .meta { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="clock" aria-live="off"><b id="clock">--:--</b> · <span id="date"></span></div>
+  <div class="modes" role="group" aria-label="Timer length">
+    <button class="mode" data-min="25" aria-pressed="true">Focus 25</button>
+    <button class="mode" data-min="50" aria-pressed="false">Deep 50</button>
+    <button class="mode" data-min="5" aria-pressed="false">Break 5</button>
+    <button class="mode" data-min="15" aria-pressed="false">Long break 15</button>
+  </div>
+  <div class="time" id="time" role="timer" aria-live="polite">25:00</div>
+  <div class="bar" aria-hidden="true"><i id="bar"></i></div>
+  <div class="controls">
+    <button class="btn primary" id="start">Start</button>
+    <button class="btn" id="reset">Reset</button>
+  </div>
+  <div class="meta" id="meta">Sessions completed today: 0</div>
+</div>
+<script>
+(function () {
+  var total = 25 * 60, left = total, running = false, endAt = 0, tick = null, done = 0;
+  var $ = function (id) { return document.getElementById(id); };
+  function fmt(s) { var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r; }
+  function paint() {
+    $("time").textContent = fmt(left);
+    $("bar").style.transform = "scaleX(" + ((total - left) / total) + ")";
+    $("start").textContent = running ? "Pause" : (left < total ? "Resume" : "Start");
+    document.title = running ? fmt(left) + " · Focus" : "Focus Timer";
+  }
+  function beep() {
+    try {
+      var C = window.AudioContext || window.webkitAudioContext, c = new C();
+      [0, .35, .7].forEach(function (t) {
+        var o = c.createOscillator(), g = c.createGain();
+        o.frequency.value = 880; o.connect(g); g.connect(c.destination);
+        g.gain.setValueAtTime(.001, c.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(.2, c.currentTime + t + .02);
+        g.gain.exponentialRampToValueAtTime(.001, c.currentTime + t + .25);
+        o.start(c.currentTime + t); o.stop(c.currentTime + t + .3);
+      });
+    } catch (e) {}
+  }
+  function step() {
+    left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+    if (left === 0) {
+      clearInterval(tick); running = false;
+      if (total >= 20 * 60) { done++; $("meta").textContent = "Sessions completed today: " + done + " — log it in Study Log."; }
+      beep(); left = total;
+    }
+    paint();
+  }
+  $("start").onclick = function () {
+    if (running) { clearInterval(tick); running = false; }
+    else { endAt = Date.now() + left * 1000; running = true; tick = setInterval(step, 250); }
+    paint();
+  };
+  $("reset").onclick = function () { clearInterval(tick); running = false; left = total; paint(); };
+  Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (b) {
+    b.onclick = function () {
+      Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (x) { x.setAttribute("aria-pressed", "false"); });
+      b.setAttribute("aria-pressed", "true");
+      clearInterval(tick); running = false; total = left = (+b.dataset.min) * 60; paint();
+    };
+  });
+  function clock() {
+    var d = new Date();
+    $("clock").textContent = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    $("date").textContent = d.toLocaleDateString([], { weekday: "long", day: "numeric", month: "long" });
+  }
+  clock(); setInterval(clock, 1000 * 15); paint();
+})();
+</script>
+</body>
+</html>

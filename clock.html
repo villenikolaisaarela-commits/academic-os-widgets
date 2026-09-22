@@ -5,30 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clock</title>
 <style>
-  :root {
-    --bg: #f7f6f3; --fg: #37352f; --muted: #6f6e69; --tick: #c7c6c2; --hand: #37352f; --accent: #a55d3f;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #202020; --fg: #e6e6e4; --muted: #a3a29e; --tick: #4a4a48; --hand: #e6e6e4; --accent: #d08a66; }
-  }
-  html, body { margin: 0; height: 100%; background: var(--bg); }
+  /* Theme-independent card: same warm palette as the focus timer, readable on Notion light and dark. */
+  :root { --ink: #ffffff; --soft: #f1ddd0; --tick: rgba(255,255,255,.28); --tick-major: rgba(255,255,255,.7); --accent: #f3c9a8; }
+  html, body { margin: 0; height: 100%; }
   body {
     display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, #3a1d14 0%, #5e2f20 55%, #7a3a26 100%);
+    color: var(--ink);
     font: 13px/1.3 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    color: var(--fg);
   }
-  .wrap { position: relative; width: min(92vw, 92vh, 260px); aspect-ratio: 1; }
+  .wrap { position: relative; width: min(88vw, 88vh, 260px); aspect-ratio: 1; }
   svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .tick { stroke: var(--tick); stroke-width: 1.2; stroke-linecap: round; }
-  .tick.major { stroke: var(--muted); stroke-width: 2; }
-  .hand { stroke: var(--hand); stroke-linecap: round; }
+  .tick.major { stroke: var(--tick-major); stroke-width: 2; }
+  .hand { stroke: var(--ink); stroke-linecap: round; }
   .hand.sec { stroke: var(--accent); }
   .pin { fill: var(--accent); }
-  .readout {
-    position: absolute; left: 0; right: 0; top: 60%; text-align: center; pointer-events: none;
-  }
+  .readout { position: absolute; left: 0; right: 0; top: 62%; text-align: center; pointer-events: none; }
   .time { font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: .02em; }
-  .date { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .date { font-size: 11px; color: var(--soft); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -47,6 +42,17 @@
 </div>
 <script>
 (function () {
+  // Region handling:
+  //   default  -> language, date order and 12/24-hour format follow the viewer's device locale
+  //   ?lang=en-US, ?lang=en-GB, ?lang=fi ... -> force a locale
+  //   ?h=12 or ?h=24                         -> force the hour format
+  var q = new URLSearchParams(location.search);
+  var locale = q.get("lang") || undefined;
+  var hParam = q.get("h");
+  var hour12 = hParam === "12" ? true : hParam === "24" ? false : undefined;
+  var timeFmt = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: hour12 });
+  var dateFmt = new Intl.DateTimeFormat(locale, { weekday: "short", month: "short", day: "numeric" });
+
   var g = document.getElementById("ticks"), ns = "http://www.w3.org/2000/svg";
   for (var i = 0; i < 60; i++) {
     var major = i % 5 === 0, l = document.createElementNS(ns, "line");
@@ -57,14 +63,13 @@
     g.appendChild(l);
   }
   var H = document.getElementById("h"), M = document.getElementById("m"), S = document.getElementById("s");
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
   function tick() {
     var d = new Date(), s = d.getSeconds(), m = d.getMinutes() + s / 60, h = (d.getHours() % 12) + m / 60;
     H.setAttribute("transform", "rotate(" + h * 30 + ")");
     M.setAttribute("transform", "rotate(" + m * 6 + ")");
     S.setAttribute("transform", "rotate(" + s * 6 + ")");
-    document.getElementById("time").textContent = pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(s);
-    document.getElementById("date").textContent = d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+    document.getElementById("time").textContent = timeFmt.format(d);
+    document.getElementById("date").textContent = dateFmt.format(d);
   }
   tick(); setInterval(tick, 1000);
 })();

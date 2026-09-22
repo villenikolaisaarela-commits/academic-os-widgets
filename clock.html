@@ -12,12 +12,19 @@
     --tick: rgba(42,39,36,.24); --tick-major: rgba(42,39,36,.55);
     --accent: #b0592f;
   }
+  /* An embedded page cannot see Notion's own light/dark setting, so the ink follows
+     the viewer's device by default. Add ?theme=dark or ?theme=light to force one. */
   @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
       --ink: #f5f3f0; --muted: #9a958d;
       --tick: rgba(245,243,240,.22); --tick-major: rgba(245,243,240,.55);
       --accent: #d08a63;
     }
+  }
+  :root[data-theme="dark"] {
+    --ink: #f5f3f0; --muted: #9a958d;
+    --tick: rgba(245,243,240,.22); --tick-major: rgba(245,243,240,.55);
+    --accent: #d08a63;
   }
   html, body { margin: 0; height: 100%; background: transparent; }
   body {
@@ -68,6 +75,8 @@
   //   <html data-lang="en-US" data-h="12"> -> per-file defaults (clock-us.html, clock-intl.html),
   //   because Notion embeds may drop the query string.
   var q = new URLSearchParams(location.search), d = document.documentElement.dataset;
+  var theme = q.get("theme");
+  if (theme === "dark" || theme === "light") d.theme = theme;
   var locale = q.get("lang") || d.lang || undefined;
   var hParam = q.get("h") || d.h;
   var hour12 = hParam === "12" ? true : hParam === "24" ? false : undefined;

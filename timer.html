@@ -5,32 +5,47 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Focus Timer</title>
 <style>
-  :root { --ink: #ffffff; --chip: rgba(0,0,0,.28); --chip-on: rgba(255,255,255,.92); --chip-on-ink: #5a2c1d; }
+  /* Warm, theme-independent card so it reads the same on Notion light and dark. */
+  :root {
+    --ink: #3b2116; --ink-soft: rgba(59,33,22,.62);
+    --chip: rgba(255,255,255,.42); --chip-on: #ffffff;
+    --line: rgba(59,33,22,.18);
+  }
   html, body { margin: 0; height: 100%; }
   body {
-    display: flex; align-items: stretch; justify-content: center;
-    background: linear-gradient(160deg, #4a2418 0%, #7a3a26 45%, #9c5033 100%);
+    display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(90% 70% at 18% 8%, #fdf6f1 0%, rgba(253,246,241,0) 60%),
+      linear-gradient(155deg, #f6ded0 0%, #e9b191 45%, #cf7f57 100%);
     color: var(--ink);
-    font: 13px/1.3 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font: 400 13px/1.35 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
-  .card { width: 100%; max-width: 340px; padding: 18px 16px 16px; box-sizing: border-box;
-          display: flex; flex-direction: column; align-items: center; gap: 12px; }
-  .time { font-size: clamp(44px, 20vw, 64px); font-weight: 700; letter-spacing: -.02em;
-          font-variant-numeric: tabular-nums; line-height: 1; margin-top: 4px; }
-  .label { font-size: 12px; opacity: .92; margin-top: -4px; }
-  .bar { width: 100%; height: 4px; border-radius: 4px; background: rgba(0,0,0,.28); overflow: hidden; }
-  .bar > i { display: block; height: 100%; width: 100%; background: #f3c9a8;
-             transform: scaleX(0); transform-origin: left center; transition: transform .5s linear; }
-  .modes { display: flex; flex-direction: column; gap: 6px; width: 100%; max-width: 180px; }
-  .mode { border: 0; border-radius: 999px; padding: 7px 12px; background: var(--chip); color: var(--ink);
-          font: inherit; font-size: 12px; cursor: pointer; }
-  .mode[aria-pressed="true"] { background: var(--chip-on); color: var(--chip-on-ink); font-weight: 600; }
-  .controls { display: flex; gap: 8px; width: 100%; justify-content: center; margin-top: 2px; }
-  .btn { border: 0; border-radius: 999px; padding: 8px 18px; min-width: 76px; font: inherit; font-weight: 600;
-         cursor: pointer; background: var(--chip-on); color: var(--chip-on-ink); }
-  .btn.ghost { background: var(--chip); color: var(--ink); font-weight: 500; }
-  button:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
-  .meta { font-size: 11px; opacity: .92; }
+  .card { width: 100%; max-width: 320px; padding: 20px 18px; box-sizing: border-box;
+          display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .time { font-size: clamp(46px, 21vw, 66px); font-weight: 300; letter-spacing: -.02em;
+          font-variant-numeric: tabular-nums; line-height: 1; }
+  .label { font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft); margin-top: -8px; }
+  .bar { width: 100%; max-width: 220px; height: 3px; border-radius: 3px; background: var(--line); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--ink); opacity: .55;
+             transform: scaleX(0); transform-origin: left center; transition: transform .4s linear; }
+  .modes { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 190px; }
+  .mode { border: 0; border-radius: 999px; padding: 8px 14px; background: var(--chip); color: var(--ink);
+          font: inherit; font-size: 12.5px; cursor: pointer; transition: background .15s ease; }
+  .mode:hover { background: rgba(255,255,255,.62); }
+  .mode[aria-pressed="true"] { background: var(--chip-on); font-weight: 600; box-shadow: 0 1px 6px rgba(59,33,22,.14); }
+  .controls { display: flex; gap: 10px; }
+  .btn { border: 0; border-radius: 999px; padding: 9px 22px; min-width: 88px; font: inherit; font-weight: 600;
+         font-size: 13px; cursor: pointer; background: var(--chip-on); color: var(--ink);
+         box-shadow: 0 1px 6px rgba(59,33,22,.16); }
+  .btn.ghost { background: var(--chip); box-shadow: none; font-weight: 500; }
+  .btn:hover { transform: translateY(-1px); }
+  .btn, .mode { transition: transform .12s ease, background .15s ease; }
+  button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .dots { display: flex; gap: 6px; align-items: center; min-height: 10px; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(59,33,22,.22); display: block; }
+  .dots i.on { background: var(--ink); }
+  .meta { font-size: 11px; color: var(--ink-soft); letter-spacing: .04em; }
 </style>
 </head>
 <body>
@@ -39,63 +54,89 @@
   <div class="label" id="label">Focus</div>
   <div class="bar" aria-hidden="true"><i id="bar"></i></div>
   <div class="modes" role="group" aria-label="Timer mode">
-    <button class="mode" data-min="25" data-label="Focus" aria-pressed="true">Pomodoro · 25</button>
-    <button class="mode" data-min="5" data-label="Short break" aria-pressed="false">Short break · 5</button>
-    <button class="mode" data-min="15" data-label="Long break" aria-pressed="false">Long break · 15</button>
+    <button class="mode" data-min="25" data-label="Focus" aria-pressed="true">pomodoro · 25 min</button>
+    <button class="mode" data-min="5" data-label="Short break" aria-pressed="false">short break · 5 min</button>
+    <button class="mode" data-min="15" data-label="Long break" aria-pressed="false">long break · 15 min</button>
   </div>
   <div class="controls">
-    <button class="btn" id="start">Start</button>
-    <button class="btn ghost" id="reset">Reset</button>
+    <button class="btn" id="start">start</button>
+    <button class="btn ghost" id="reset">reset</button>
   </div>
-  <div class="meta" id="meta">0 sessions today</div>
+  <div class="dots" id="dots" aria-hidden="true"></div>
+  <div class="meta" id="meta">no sessions yet today</div>
 </div>
 <script>
 (function () {
-  var total = 1500, left = 1500, running = false, endAt = 0, tick = null, done = 0, label = "Focus";
+  var total = 1500, left = 1500, running = false, endAt = 0, ticker = null, done = 0, label = "Focus";
   var $ = function (id) { return document.getElementById(id); };
   function fmt(s) { var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r; }
+
+  function paintDots() {
+    var wrap = $("dots");
+    wrap.textContent = "";
+    for (var i = 0; i < Math.min(done, 8); i++) {
+      var d = document.createElement("i");
+      d.className = "on";
+      wrap.appendChild(d);
+    }
+    $("meta").textContent = done === 0 ? "no sessions yet today"
+      : done + (done === 1 ? " session today" : " sessions today");
+  }
+
   function paint() {
     $("time").textContent = fmt(left);
     $("bar").style.transform = "scaleX(" + ((total - left) / total) + ")";
-    $("start").textContent = running ? "Pause" : (left < total ? "Resume" : "Start");
+    $("start").textContent = running ? "pause" : (left < total ? "resume" : "start");
     $("label").textContent = label;
-    document.title = running ? fmt(left) + " · " + label : "Focus Timer";
+    document.title = fmt(left) + " · " + label;
   }
+
   function beep() {
     try {
-      var C = window.AudioContext || window.webkitAudioContext, c = new C();
-      [0, .35, .7].forEach(function (t) {
-        var o = c.createOscillator(), g = c.createGain();
-        o.frequency.value = 880; o.connect(g); g.connect(c.destination);
-        g.gain.setValueAtTime(.001, c.currentTime + t);
-        g.gain.exponentialRampToValueAtTime(.2, c.currentTime + t + .02);
-        g.gain.exponentialRampToValueAtTime(.001, c.currentTime + t + .25);
-        o.start(c.currentTime + t); o.stop(c.currentTime + t + .3);
-      });
-    } catch (e) {}
+      var Ctx = window.AudioContext || window.webkitAudioContext, ctx = new Ctx();
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = "sine"; o.frequency.value = 660;
+      g.gain.setValueAtTime(0.0001, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 1.1);
+      o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 1.2);
+    } catch (e) { /* no audio available */ }
   }
-  function step() {
-    left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
-    if (left === 0) {
-      clearInterval(tick); running = false;
-      if (total >= 1200) { done++; $("meta").textContent = done + (done === 1 ? " session" : " sessions") + " today · log it in Study Log"; }
-      beep(); left = total;
-    }
+
+  function stop() { running = false; clearInterval(ticker); ticker = null; paint(); }
+
+  function run() {
+    running = true;
+    endAt = Date.now() + left * 1000;
+    clearInterval(ticker);
+    ticker = setInterval(function () {
+      left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
+      if (left === 0) {
+        stop();
+        if (label === "Focus") { done++; paintDots(); }
+        left = total;
+        beep();
+      }
+      paint();
+    }, 250);
     paint();
   }
-  $("start").onclick = function () {
-    if (running) { clearInterval(tick); running = false; }
-    else { endAt = Date.now() + left * 1000; running = true; tick = setInterval(step, 250); }
-    paint();
-  };
-  $("reset").onclick = function () { clearInterval(tick); running = false; left = total; paint(); };
-  Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (b) {
+
+  $("start").onclick = function () { running ? stop() : run(); };
+  $("reset").onclick = function () { stop(); left = total; paint(); };
+
+  [].forEach.call(document.querySelectorAll(".mode"), function (b) {
     b.onclick = function () {
-      Array.prototype.forEach.call(document.querySelectorAll(".mode"), function (x) { x.setAttribute("aria-pressed", "false"); });
+      [].forEach.call(document.querySelectorAll(".mode"), function (x) { x.setAttribute("aria-pressed", "false"); });
       b.setAttribute("aria-pressed", "true");
-      clearInterval(tick); running = false; total = left = (+b.dataset.min) * 60; label = b.dataset.label; paint();
+      stop();
+      total = left = parseInt(b.dataset.min, 10) * 60;
+      label = b.dataset.label;
+      paint();
     };
   });
+
+  paintDots();
   paint();
 })();
 </script>

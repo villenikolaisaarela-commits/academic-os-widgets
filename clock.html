@@ -55,6 +55,22 @@
   var timeFmt = new Intl.DateTimeFormat(locale, { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: hour12 });
   var dateFmt = new Intl.DateTimeFormat(locale, { weekday: "short", month: "short", day: "numeric" });
 
+  // Edition files format English by hand: some embed hosts (Notion desktop) ignore the requested
+  // Intl locale and fall back to the device language.
+  if (hParam === "12" || hParam === "24") {
+    var DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var pad = function (n) { return (n < 10 ? "0" : "") + n; };
+    timeFmt = { format: function (t) {
+      var h = t.getHours(), ms = ":" + pad(t.getMinutes()) + ":" + pad(t.getSeconds());
+      return hParam === "12" ? ((h % 12) || 12) + ms + (h < 12 ? " AM" : " PM") : pad(h) + ms;
+    } };
+    dateFmt = { format: function (t) {
+      var wd = DAYS[t.getDay()], mo = MONTHS[t.getMonth()], dd = t.getDate();
+      return hParam === "12" ? wd + ", " + mo + " " + dd : wd + " " + dd + " " + mo;
+    } };
+  }
+
   var g = document.getElementById("ticks"), ns = "http://www.w3.org/2000/svg";
   for (var i = 0; i < 60; i++) {
     var major = i % 5 === 0, l = document.createElementNS(ns, "line");

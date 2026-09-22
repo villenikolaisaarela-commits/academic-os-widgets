@@ -43,7 +43,9 @@
     --surface-hover: rgba(245,243,240,.13);
     --line: rgba(245,243,240,.16);
   }
-  html, body { margin: 0; height: 100%; background: var(--bg); }
+  /* overflow:hidden keeps the embed from growing a scrollbar over a stray pixel or two;
+     the vh-based sizing below means there is never real content to scroll to. */
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
   body {
     display: flex; align-items: center; justify-content: center;
     color: var(--ink);

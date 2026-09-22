@@ -2,7 +2,7 @@
 
 - `clock.html`: analog clock with digital time and date. Language and 12/24-hour format follow the viewer's device (`?h=12`, `?h=24` or `?lang=` force them).
 - `clock-us.html`: the same clock, fixed to US format ("5:03:03 PM · Tue, Sep 22"). Used on the US edition's Home.
-- `clock-24.html`: the same clock, fixed to 24-hour English ("17:03:03 · Tue 22 Sep"). Used on the International edition's Home.
+- `clock-intl.html` (= `clock-24.html`): the same clock, fixed to 24-hour English ("17:03:03 · Tue 22 Sep"). Used on the International edition's Home.
   The edition files format the text themselves, because Notion's desktop app can ignore a requested locale.
 - `timer.html`: Pomodoro timer with Pomodoro 25, Short break 5 and Long break 15, plus Start/Reset (the right column on Home).
 - `focus-timer.html`: a compact widget with the clock and timer combined (Focus 25 / Deep 50 / Break 5 / Long break 15).

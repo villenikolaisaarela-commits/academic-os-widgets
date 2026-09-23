@@ -28,7 +28,7 @@
   var list = (q.get("list") || "37i9dQZF1DWWQRwui0ExPn").replace(/[^A-Za-z0-9]/g, "");
   var type = q.get("type") === "album" ? "album" : "playlist";
   var f = document.getElementById("p");
-  f.style.height = (window.innerHeight >= 340 ? 352 : 152) + "px";
+  f.style.height = (window.innerHeight >= 200 ? 352 : 152) + "px";
   f.src = "https://open.spotify.com/embed/" + type + "/" + list + "?utm_source=generator&theme=0";
 })();
 </script>

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Study playlist</title>
+<style>
+  /* Wrapper for Spotify's embed player. It paints the same background Notion uses (an embedded
+     frame is never transparent) and sizes the player to the whole block, so no white gap is
+     left under the player. ?theme=dark|light pins the background; ?list=<playlist id> picks
+     the playlist (any Spotify playlist id works). */
+  :root { color-scheme: light; --bg: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { color-scheme: dark; --bg: #191919; } }
+  :root[data-theme="dark"] { color-scheme: dark; --bg: #191919; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  iframe { display: block; width: 100%; height: 100%; border: 0; border-radius: 12px; }
+</style>
+</head>
+<body>
+<iframe id="p" title="Spotify playlist" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), d = document.documentElement.dataset;
+  var t = q.get("theme"); if (t === "dark" || t === "light") d.theme = t;
+  var list = (q.get("list") || "37i9dQZF1DWWQRwui0ExPn").replace(/[^A-Za-z0-9]/g, "");
+  var type = q.get("type") === "album" ? "album" : "playlist";
+  document.getElementById("p").src = "https://open.spotify.com/embed/" + type + "/" + list + "?utm_source=generator&theme=0";
+})();
+</script>
+</body>
+</html>

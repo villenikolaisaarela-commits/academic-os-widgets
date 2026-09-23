@@ -26,7 +26,7 @@ the embed URL to pin it, e.g.
 
 `focus-timer.html` is a single, self-contained HTML file. It makes **no network requests**, stores nothing, follows the system light/dark theme, and plays a short beep when a session ends.
 
-**Academic OS works fully without it.** Home already shows today's date and the current semester week.
+**Framewise Academic works fully without it.** Home already shows today's date and the current semester week.
 
 ## Why it is a separate file
 Notion does not run uploaded HTML files: an uploaded `.html` embed shows a spinner forever. To embed the timer, it must be served from a web address.

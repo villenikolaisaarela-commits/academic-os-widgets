@@ -5,7 +5,7 @@
 - `clock-intl.html` (= `clock-24.html`): the same clock, fixed to 24-hour English ("17:03:03 · Tue 22 Sep"). Used on the International edition's Home.
   The edition files format the text themselves, because Notion's desktop app can ignore a requested locale.
 - `timer.html`: focus timer with Study 25, Short break 5 and Long break 15, plus Start/Reset. It sits in the **Focus studio** block on Home (right column) together with a Spotify bookmark and the *Log study session* button. Like the clock, it paints Notion's own background and takes the same `?theme=` override; its spacing scales with the embed's height, so it fits whatever size the block is dragged to.
-- `spotify.html`: a wrapper around Spotify's embed player for the Focus studio block. It paints Notion's background and fills the whole block (Spotify's raw embed leaves a white gap under a compact player). `?list=<playlist id>` picks the playlist, `&type=album` embeds an album, `&theme=dark|light` pins the background.
+- `spotify.html`: a wrapper around Spotify's embed player for the Focus studio block. It paints Notion's background and gives Spotify's player a fixed 352 px height (152 px in a short block), because Spotify decides its layout from the iframe height at load time and paints white under a compact player. `?list=<playlist id>` picks the playlist, `&type=album` embeds an album, `&theme=dark|light` pins the background.
 - `whiteboard.html`: a drawing board with six colours, three pen sizes, eraser, undo and Save PNG. The drawing is kept in the viewer's own browser (localStorage); nothing is uploaded.
 - `focus-timer.html`: a compact widget with the clock and timer combined (Focus 25 / Deep 50 / Break 5 / Long break 15).
 

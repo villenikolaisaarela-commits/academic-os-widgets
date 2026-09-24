@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Time progress · Framewise</title>
+<style>
+  /* Framewise time progress: how much of today, this week, this month and this year has passed.
+     Self-contained, no network. ?accent=green|blue|purple|red|yellow|orange|brown matches the template,
+     ?theme=dark|light pins the background. Weeks run Monday to Sunday. */
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --ink: #2a2724; --muted: #6b645b; --track: rgba(42,39,36,.08); --line: rgba(42,39,36,.12);
+    --green: #4f7a5c; --blue: #4a6f93; --purple: #7a5ea8; --red: #a8574d; --yellow: #a5842c; --orange: #b56a33; --brown: #8a6446;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #191919; --ink: #f2f0ec; --muted: #9a958d; --track: rgba(245,243,240,.08); --line: rgba(245,243,240,.12);
+      --green: #8fcf9f; --blue: #8fb4d9; --purple: #b9a3f0; --red: #e8a197; --yellow: #e6c46f; --orange: #eba673; --brown: #d0a887;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #191919; --ink: #f2f0ec; --muted: #9a958d; --track: rgba(245,243,240,.08); --line: rgba(245,243,240,.12);
+    --green: #8fcf9f; --blue: #8fb4d9; --purple: #b9a3f0; --red: #e8a197; --yellow: #e6c46f; --orange: #eba673; --brown: #d0a887;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { color: var(--ink); font: 400 12.5px/1.3 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         -webkit-font-smoothing: antialiased; display: flex; flex-direction: column; justify-content: center; gap: 9px; padding: 8px 4px; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: baseline; }
+  .name { font-weight: 600; }
+  .pct { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; }
+  .fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .6s ease; }
+</style>
+</head>
+<body>
+<div class="row"><span class="name">Day</span><span class="pct" id="p-day"></span><div class="bar"><div class="fill" id="b-day"></div></div></div>
+<div class="row"><span class="name">Week</span><span class="pct" id="p-week"></span><div class="bar"><div class="fill" id="b-week"></div></div></div>
+<div class="row"><span class="name">Month</span><span class="pct" id="p-month"></span><div class="bar"><div class="fill" id="b-month"></div></div></div>
+<div class="row"><span class="name">Year</span><span class="pct" id="p-year"></span><div class="bar"><div class="fill" id="b-year"></div></div></div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), root = document.documentElement;
+  var t = q.get("theme"); if (t === "dark" || t === "light") root.dataset.theme = t;
+  var a = q.get("accent"); if (!/^(green|blue|purple|red|yellow|orange|brown)$/.test(a || "")) a = "green";
+  root.style.setProperty("--accent", "var(--" + a + ")");
+  function set(k, f) {
+    var p = Math.max(0, Math.min(1, f));
+    document.getElementById("b-" + k).style.width = (p * 100).toFixed(1) + "%";
+    document.getElementById("p-" + k).textContent = Math.floor(p * 100) + "%";
+  }
+  function tick() {
+    var n = new Date(), y = n.getFullYear(), m = n.getMonth();
+    var day0 = new Date(y, m, n.getDate());
+    set("day", (n - day0) / 864e5);
+    var dow = (n.getDay() + 6) % 7;                       // Monday = 0
+    var wk0 = new Date(y, m, n.getDate() - dow);
+    set("week", (n - wk0) / (7 * 864e5));
+    var m0 = new Date(y, m, 1), m1 = new Date(y, m + 1, 1);
+    set("month", (n - m0) / (m1 - m0));
+    var y0 = new Date(y, 0, 1), y1 = new Date(y + 1, 0, 1);
+    set("year", (n - y0) / (y1 - y0));
+  }
+  tick(); setInterval(tick, 60000);
+})();
+</script>
+</body>
+</html>

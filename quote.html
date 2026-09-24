@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily quote · Framewise</title>
+<style>
+  /* Framewise daily quote: one calm, public-domain quote per day; click for the next one.
+     Self-contained, no network. ?accent=green|blue|purple|red|yellow|orange|brown, ?theme=dark|light. */
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --card: #f7f6f3; --ink: #2a2724; --muted: #6b645b; --line: rgba(42,39,36,.10);
+    --green: #4f7a5c; --blue: #4a6f93; --purple: #7a5ea8; --red: #a8574d; --yellow: #a5842c; --orange: #b56a33; --brown: #8a6446;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #191919; --card: #202020; --ink: #f2f0ec; --muted: #9a958d; --line: rgba(245,243,240,.10);
+      --green: #8fcf9f; --blue: #8fb4d9; --purple: #b9a3f0; --red: #e8a197; --yellow: #e6c46f; --orange: #eba673; --brown: #d0a887;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #191919; --card: #202020; --ink: #f2f0ec; --muted: #9a958d; --line: rgba(245,243,240,.10);
+    --green: #8fcf9f; --blue: #8fb4d9; --purple: #b9a3f0; --red: #e8a197; --yellow: #e6c46f; --orange: #eba673; --brown: #d0a887;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { display: flex; padding: 4px; font-family: ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+  button { all: unset; box-sizing: border-box; flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px;
+           padding: 16px 18px; border-radius: 12px; background: var(--card); box-shadow: inset 0 0 0 1px var(--line); cursor: pointer; }
+  button:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+  .mark { width: 22px; height: 3px; border-radius: 3px; background: var(--accent); }
+  q { quotes: none; color: var(--ink); font: italic 400 clamp(14px, 5.4vh, 17px)/1.4 Georgia, "Iowan Old Style", "Times New Roman", serif; text-wrap: pretty; }
+  cite { color: var(--muted); font-size: 11.5px; font-weight: 600; font-style: normal; line-height: 1.2; letter-spacing: .02em; }
+</style>
+</head>
+<body>
+<button id="card" title="Show another quote" aria-label="Show another quote">
+  <span class="mark" aria-hidden="true"></span>
+  <q id="q"></q>
+  <cite id="c"></cite>
+</button>
+<script>
+(function () {
+  var p = new URLSearchParams(location.search), root = document.documentElement;
+  var t = p.get("theme"); if (t === "dark" || t === "light") root.dataset.theme = t;
+  var a = p.get("accent"); if (!/^(green|blue|purple|red|yellow|orange|brown)$/.test(a || "")) a = "green";
+  root.style.setProperty("--accent", "var(--" + a + ")");
+  var Q = [
+    ["It is not that we have a short time to live, but that we waste a lot of it.", "Seneca"],
+    ["Adopt the pace of nature: her secret is patience.", "Ralph Waldo Emerson"],
+    ["A journey of a thousand miles begins with a single step.", "Lao Tzu"],
+    ["Waste no more time arguing about what a good man should be. Be one.", "Marcus Aurelius"],
+    ["First say to yourself what you would be; and then do what you have to do.", "Epictetus"],
+    ["Well done is better than well said.", "Benjamin Franklin"],
+    ["Write it on your heart that every day is the best day in the year.", "Ralph Waldo Emerson"],
+    ["While we wait for life, life passes.", "Seneca"],
+    ["It is not enough to be busy. The question is: what are we busy about?", "Henry David Thoreau"],
+    ["The happiness of your life depends upon the quality of your thoughts.", "Marcus Aurelius"],
+    ["He who knows others is wise; he who knows himself is enlightened.", "Lao Tzu"],
+    ["Nothing is more honorable than a grateful heart.", "Seneca"]
+  ];
+  var n = new Date(), doy = Math.floor((n - new Date(n.getFullYear(), 0, 1)) / 864e5), i = doy % Q.length;
+  function show() { document.getElementById("q").textContent = Q[i][0]; document.getElementById("c").textContent = Q[i][1]; }
+  document.getElementById("card").onclick = function () { i = (i + 1) % Q.length; show(); };
+  show();
+})();
+</script>
+</body>
+</html>

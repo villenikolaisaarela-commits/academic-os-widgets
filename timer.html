@@ -108,6 +108,31 @@
 
   var total = 1500, left = 1500, running = false, endAt = 0, ticker = null, done = 0, label = "Study";
   var $ = function (id) { return document.getElementById(id); };
+
+  // The timer's state lives in this browser (localStorage), so a running session survives leaving
+  // the page, and "today" really means today. Notion removes the embed when you open another page.
+  var KEY = "framewise-timer" + (location.search.replace(/[?&](theme|v)=[^&]*/g, "") || ""), day = today();
+  function today() { var d = new Date(); return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate(); }
+  function store() {
+    try { localStorage.setItem(KEY, JSON.stringify({ total: total, left: left, running: running, endAt: endAt, label: label, day: day, done: done })); }
+    catch (e) { /* storage blocked: the timer still works for this visit */ }
+  }
+  function restore() {
+    var st = null;
+    try { st = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { st = null; }
+    if (!st) return false;
+    total = st.total || 1500; label = st.label || "Study"; left = Math.min(st.left || total, total);
+    done = st.day === today() ? (st.done || 0) : 0; day = today();
+    running = false;
+    if (st.running && st.endAt) {
+      if (st.endAt > Date.now()) { left = Math.max(1, Math.round((st.endAt - Date.now()) / 1000)); running = true; }
+      else { if (label === "Study" && st.day === today()) done++; left = total; }   // finished while away
+    }
+    [].forEach.call(document.querySelectorAll(".mode"), function (x) {
+      x.setAttribute("aria-pressed", x.dataset.label === label ? "true" : "false");
+    });
+    return true;
+  }
   function fmt(s) { var m = Math.floor(s / 60), r = s % 60; return (m < 10 ? "0" : "") + m + ":" + (r < 10 ? "0" : "") + r; }
 
   function paintDots() {
@@ -138,27 +163,31 @@
     } catch (e) { /* no audio available */ }
   }
 
-  function stop() { running = false; clearInterval(ticker); ticker = null; paint(); }
+  function stop() { running = false; clearInterval(ticker); ticker = null; paint(); store(); }
 
   function run() {
     running = true;
     endAt = Date.now() + left * 1000;
+    try { var st = JSON.parse(localStorage.getItem(KEY) || "null"); if (st && st.running && st.endAt > Date.now() && st.label === label) endAt = st.endAt; } catch (e) {}
     clearInterval(ticker);
     ticker = setInterval(function () {
       left = Math.max(0, Math.round((endAt - Date.now()) / 1000));
       if (left === 0) {
-        stop();
-        if (label === "Study") { done++; paintDots(); }
+        if (day !== today()) { day = today(); done = 0; }
+        if (label === "Study") done++;
         left = total;
+        stop();
+        paintDots();
         beep();
       }
       paint();
     }, 250);
     paint();
+    store();
   }
 
   $("start").onclick = function () { running ? stop() : run(); };
-  $("reset").onclick = function () { stop(); left = total; paint(); };
+  $("reset").onclick = function () { stop(); left = total; paint(); store(); };
 
   [].forEach.call(document.querySelectorAll(".mode"), function (b) {
     b.onclick = function () {
@@ -168,11 +197,21 @@
       total = left = parseInt(b.dataset.min, 10) * 60;
       label = b.dataset.label;
       paint();
+      store();
     };
   });
 
+  // Another open copy of the timer (a second tab or device window) changed the state: follow it.
+  window.addEventListener("storage", function (e) {
+    if (e.key !== KEY) return;
+    clearInterval(ticker); ticker = null;
+    if (restore() && running) run(); else { paintDots(); paint(); }
+  });
+
+  var wasRunning = restore() && running;
   paintDots();
   paint();
+  if (wasRunning) run();
 })();
 </script>
 </body>

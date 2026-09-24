@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Investment calculator · Framewise</title>
+<style>
+  /* Framewise investment calculator. Self-contained: no network requests, no tracking.
+     Inputs are remembered in this browser (localStorage). Paints Notion's own background
+     (#ffffff / #191919) because an embedded frame is never transparent; ?theme=dark|light pins it,
+     ?cur=€|$|£ sets the default currency. */
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --panel: #f7f7f5; --ink: #2a2724; --muted: #6b645b; --line: rgba(42,39,36,.12);
+    --field: rgba(42,39,36,.05); --accent: #4f6b57; --accent-soft: rgba(79,107,87,.16); --gold: #b78f45;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #191919; --panel: #202020; --ink: #f2f0ec; --muted: #9a958d; --line: rgba(245,243,240,.12);
+      --field: rgba(245,243,240,.06); --accent: #8faf95; --accent-soft: rgba(143,175,149,.18); --gold: #d1ab62;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #191919; --panel: #202020; --ink: #f2f0ec; --muted: #9a958d; --line: rgba(245,243,240,.12);
+    --field: rgba(245,243,240,.06); --accent: #8faf95; --accent-soft: rgba(143,175,149,.18); --gold: #d1ab62;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { color: var(--ink); font: 400 13px/1.35 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         -webkit-font-smoothing: antialiased; display: flex; }
+  .wrap { flex: 1; display: grid; grid-template-columns: minmax(200px, 250px) 1fr; gap: 14px; padding: 10px; min-height: 0; }
+  .inputs { display: flex; flex-direction: column; gap: 10px; }
+  .field label { display: flex; justify-content: space-between; color: var(--muted); font-size: 11.5px; margin-bottom: 4px; }
+  .field label b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .row { display: flex; gap: 6px; align-items: center; }
+  input[type=number] { width: 100%; border: 0; border-radius: 8px; padding: 7px 9px; background: var(--field); color: var(--ink);
+                       font: inherit; font-variant-numeric: tabular-nums; outline: none; }
+  input[type=number]:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0 0; }
+  .cur { display: inline-flex; gap: 2px; background: var(--field); border-radius: 999px; padding: 2px; }
+  .cur button { border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; padding: 3px 9px; border-radius: 999px; cursor: pointer; }
+  .cur button.on { background: var(--accent-soft); color: var(--ink); }
+  .result { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--panel); border-radius: 12px; padding: 12px 14px;
+            box-shadow: inset 0 0 0 1px var(--line); }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+  .big { font-size: clamp(24px, 9vh, 34px); font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .sub { color: var(--muted); font-size: 11.5px; margin-top: 3px; }
+  .split { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+  .split b { display: block; color: var(--ink); font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+  canvas { flex: 1; width: 100%; min-height: 60px; margin-top: 10px; display: block; }
+  @media (max-width: 520px) {
+    .wrap { grid-template-columns: 1fr; overflow: auto; }
+    html, body { overflow: auto; }
+    canvas { min-height: 120px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="inputs">
+    <div class="row" style="justify-content:space-between">
+      <span style="font-weight:600">See your money grow</span>
+      <span class="cur" id="cur"></span>
+    </div>
+    <div class="field">
+      <label for="start">Starting amount</label>
+      <input id="start" type="number" min="0" step="100" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="monthly">Monthly contribution</label>
+      <input id="monthly" type="number" min="0" step="10" inputmode="decimal">
+    </div>
+    <div class="field">
+      <label for="rate">Yearly return <b id="rateOut"></b></label>
+      <input id="rate" type="range" min="0" max="15" step="0.5">
+    </div>
+    <div class="field">
+      <label for="years">Years <b id="yearsOut"></b></label>
+      <input id="years" type="range" min="1" max="40" step="1">
+    </div>
+  </div>
+  <div class="result">
+    <div class="head">
+      <div>
+        <div class="big" id="total"></div>
+        <div class="sub" id="sub"></div>
+      </div>
+      <div class="split">
+        <div><span class="dot" style="background:var(--muted)"></span>You put in<b id="paid"></b></div>
+        <div><span class="dot" style="background:var(--accent)"></span>Growth<b id="growth"></b></div>
+      </div>
+    </div>
+    <canvas id="chart" aria-label="Growth over time"></canvas>
+  </div>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), root = document.documentElement;
+  var t = q.get("theme"); if (t === "dark" || t === "light") root.dataset.theme = t;
+  var KEY = "framewise-invest";
+  var CURS = ["€", "$", "£"];
+  var st = { start: 1000, monthly: 100, rate: 7, years: 10, cur: CURS.indexOf(q.get("cur")) >= 0 ? q.get("cur") : "€" };
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || "null"); if (saved) for (var k in st) if (saved[k] != null) st[k] = saved[k]; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  var $ = function (id) { return document.getElementById(id); };
+
+  function money(v) {
+    var neg = v < 0; v = Math.abs(v);
+    var s = v >= 100000 ? Math.round(v).toLocaleString("en-US") : v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (neg ? "-" : "") + st.cur + s;
+  }
+
+  var curEl = $("cur");
+  CURS.forEach(function (c) {
+    var b = document.createElement("button"); b.textContent = c; b.setAttribute("aria-label", "Currency " + c);
+    b.onclick = function () { st.cur = c; save(); paint(); };
+    curEl.appendChild(b);
+  });
+
+  function series() {
+    var r = st.rate / 100 / 12, bal = +st.start || 0, paid = bal, pts = [{ bal: bal, paid: paid }];
+    for (var m = 1; m <= st.years * 12; m++) {
+      bal = bal * (1 + r) + (+st.monthly || 0);
+      paid += (+st.monthly || 0);
+      if (m % 12 === 0) pts.push({ bal: bal, paid: paid });
+    }
+    return pts;
+  }
+
+  var cv = $("chart"), g = cv.getContext("2d");
+  function draw(pts) {
+    var dpr = window.devicePixelRatio || 1, w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+    var cs = getComputedStyle(root), acc = cs.getPropertyValue("--accent").trim(), mut = cs.getPropertyValue("--muted").trim(),
+        soft = cs.getPropertyValue("--accent-soft").trim(), line = cs.getPropertyValue("--line").trim();
+    var max = pts[pts.length - 1].bal || 1, n = pts.length - 1, pad = 4;
+    var X = function (i) { return pad + (w - pad * 2) * (n ? i / n : 0); };
+    var Y = function (v) { return h - pad - (h - pad * 2) * (v / max); };
+    g.strokeStyle = line; g.lineWidth = 1;
+    for (var k = 1; k <= 3; k++) { var yy = Math.round(h - pad - (h - pad * 2) * k / 4) + .5; g.beginPath(); g.moveTo(pad, yy); g.lineTo(w - pad, yy); g.stroke(); }
+    // growth area
+    g.beginPath(); g.moveTo(X(0), Y(0));
+    pts.forEach(function (p, i) { g.lineTo(X(i), Y(p.bal)); });
+    g.lineTo(X(n), Y(0)); g.closePath(); g.fillStyle = soft; g.fill();
+    // total line
+    g.beginPath(); pts.forEach(function (p, i) { i ? g.lineTo(X(i), Y(p.bal)) : g.moveTo(X(i), Y(p.bal)); });
+    g.strokeStyle = acc; g.lineWidth = 2.2; g.lineJoin = "round"; g.stroke();
+    // contributions line
+    g.beginPath(); pts.forEach(function (p, i) { i ? g.lineTo(X(i), Y(p.paid)) : g.moveTo(X(i), Y(p.paid)); });
+    g.strokeStyle = mut; g.lineWidth = 1.5; g.setLineDash([4, 4]); g.stroke(); g.setLineDash([]);
+  }
+
+  function paint() {
+    [].forEach.call(curEl.children, function (b) { b.classList.toggle("on", b.textContent === st.cur); });
+    $("start").value = st.start; $("monthly").value = st.monthly; $("rate").value = st.rate; $("years").value = st.years;
+    $("rateOut").textContent = (+st.rate).toFixed(1) + "%"; $("yearsOut").textContent = st.years;
+    var pts = series(), last = pts[pts.length - 1];
+    $("total").textContent = money(last.bal);
+    $("sub").textContent = "after " + st.years + (st.years == 1 ? " year" : " years") + " at " + (+st.rate).toFixed(1) + "% a year";
+    $("paid").textContent = money(last.paid);
+    $("growth").textContent = money(last.bal - last.paid);
+    draw(pts);
+  }
+
+  ["start", "monthly", "rate", "years"].forEach(function (id) {
+    $(id).addEventListener("input", function () {
+      var v = parseFloat(this.value); st[id] = isNaN(v) ? 0 : Math.max(0, v); save(); paint();
+    });
+  });
+  window.addEventListener("resize", function () { draw(series()); });
+  if (window.matchMedia) {
+    var mq = matchMedia("(prefers-color-scheme: dark)");
+    (mq.addEventListener ? mq.addEventListener.bind(mq, "change") : mq.addListener.bind(mq))(paint);
+  }
+  paint();
+})();
+</script>
+</body>
+</html>

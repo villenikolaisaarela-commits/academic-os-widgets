@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calorie calculator · Framewise</title>
+<style>
+  /* Framewise calorie calculator. Self-contained: no network requests, no tracking.
+     Uses the Mifflin-St Jeor equation. Inputs are remembered in this browser (localStorage).
+     Paints Notion's own background (#ffffff / #191919); ?theme=dark|light pins it. */
+  :root {
+    color-scheme: light;
+    --bg: #ffffff; --panel: #f7f7f5; --ink: #2a2724; --muted: #6b645b; --line: rgba(42,39,36,.12);
+    --field: rgba(42,39,36,.05); --accent: #7a5ea8; --accent-soft: rgba(122,94,168,.14);
+    --c1: #c98a1c; --c2: #3f7a55; --c3: #c0463b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #191919; --panel: #202020; --ink: #f2f0ec; --muted: #9a958d; --line: rgba(245,243,240,.12);
+      --field: rgba(245,243,240,.06); --accent: #b9a3f0; --accent-soft: rgba(185,163,240,.16);
+      --c1: #f2c56b; --c2: #8fcf9f; --c3: #f09a90;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #191919; --panel: #202020; --ink: #f2f0ec; --muted: #9a958d; --line: rgba(245,243,240,.12);
+    --field: rgba(245,243,240,.06); --accent: #b9a3f0; --accent-soft: rgba(185,163,240,.16);
+    --c1: #f2c56b; --c2: #8fcf9f; --c3: #f09a90;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
+  body { color: var(--ink); font: 400 13px/1.35 ui-sans-serif, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+         -webkit-font-smoothing: antialiased; display: flex; }
+  .wrap { flex: 1; display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: 14px; padding: 10px; min-height: 0; }
+  .inputs { display: flex; flex-direction: column; gap: 9px; }
+  .seg { display: flex; background: var(--field); border-radius: 999px; padding: 2px; }
+  .seg button { flex: 1; border: 0; background: none; color: var(--muted); font: inherit; font-weight: 600; padding: 5px 8px;
+                border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .seg button.on { background: var(--accent-soft); color: var(--ink); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  label { display: block; color: var(--muted); font-size: 11.5px; margin-bottom: 3px; }
+  input[type=number], select { width: 100%; border: 0; border-radius: 8px; padding: 7px 9px; background: var(--field); color: var(--ink);
+                               font: inherit; font-variant-numeric: tabular-nums; outline: none; }
+  input[type=number]:focus, select:focus { box-shadow: inset 0 0 0 1.5px var(--accent); }
+  .result { display: flex; align-items: center; gap: 18px; min-width: 0; background: var(--panel); border-radius: 12px; padding: 12px 16px;
+            box-shadow: inset 0 0 0 1px var(--line); }
+  .ring { position: relative; flex: none; width: clamp(110px, 44vh, 150px); aspect-ratio: 1; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
+  .ring b { display: block; font-size: clamp(22px, 9vh, 30px); font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .ring span { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+  .macros { display: flex; flex-direction: column; gap: 9px; min-width: 0; flex: 1; }
+  .macro { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 8px; }
+  .macro i { width: 10px; height: 10px; border-radius: 50%; display: block; }
+  .macro .n { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .macro small { color: var(--muted); }
+  .note { color: var(--muted); font-size: 11.5px; line-height: 1.45; }
+  .goal { font-weight: 600; }
+  @media (max-width: 560px) {
+    .wrap { grid-template-columns: 1fr; overflow: auto; }
+    html, body { overflow: auto; }
+    .result { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="inputs">
+    <div class="seg" id="sex"><button data-v="female">Female</button><button data-v="male">Male</button></div>
+    <div class="seg" id="units"><button data-v="metric">kg / cm</button><button data-v="imperial">lb / in</button></div>
+    <div class="grid2">
+      <div><label for="age">Age</label><input id="age" type="number" min="14" max="100"></div>
+      <div><label for="weight" id="wl">Weight (kg)</label><input id="weight" type="number" min="30" max="400" step="0.1"></div>
+      <div><label for="height" id="hl">Height (cm)</label><input id="height" type="number" min="100" max="250"></div>
+      <div><label for="activity">Activity</label>
+        <select id="activity">
+          <option value="1.2">Sedentary</option>
+          <option value="1.375">Light (1–3 d)</option>
+          <option value="1.55">Moderate (3–5 d)</option>
+          <option value="1.725">Active (6–7 d)</option>
+          <option value="1.9">Very active</option>
+        </select>
+      </div>
+    </div>
+    <div class="seg" id="goal"><button data-v="lose">Lose</button><button data-v="maintain">Maintain</button><button data-v="gain">Gain</button></div>
+  </div>
+  <div class="result">
+    <div class="ring">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle cx="60" cy="60" r="50" fill="none" stroke="var(--line)" stroke-width="12"/>
+        <circle id="a1" cx="60" cy="60" r="50" fill="none" stroke="var(--c1)" stroke-width="12"/>
+        <circle id="a2" cx="60" cy="60" r="50" fill="none" stroke="var(--c2)" stroke-width="12"/>
+        <circle id="a3" cx="60" cy="60" r="50" fill="none" stroke="var(--c3)" stroke-width="12"/>
+      </svg>
+      <div class="num"><div><b id="kcal"></b><span>kcal / day</span></div></div>
+    </div>
+    <div class="macros">
+      <div class="goal" id="goalText"></div>
+      <div class="macro"><i style="background:var(--c1)"></i><span>Carbs <small>45%</small></span><span class="n" id="carb"></span></div>
+      <div class="macro"><i style="background:var(--c2)"></i><span>Protein <small>30%</small></span><span class="n" id="prot"></span></div>
+      <div class="macro"><i style="background:var(--c3)"></i><span>Fat <small>25%</small></span><span class="n" id="fat"></span></div>
+      <div class="note" id="note"></div>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search), root = document.documentElement;
+  var t = q.get("theme"); if (t === "dark" || t === "light") root.dataset.theme = t;
+  var KEY = "framewise-calories";
+  var st = { sex: "female", units: "metric", age: 28, weight: 68, height: 170, activity: "1.55", goal: "maintain" };
+  try { var s = JSON.parse(localStorage.getItem(KEY) || "null"); if (s) for (var k in st) if (s[k] != null) st[k] = s[k]; } catch (e) {}
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} }
+  var $ = function (id) { return document.getElementById(id); };
+
+  function seg(id, key) {
+    var el = $(id);
+    [].forEach.call(el.children, function (b) {
+      b.onclick = function () {
+        if (key === "units" && st.units !== b.dataset.v) {    // convert the typed numbers
+          if (b.dataset.v === "imperial") { st.weight = Math.round(st.weight * 2.20462 * 10) / 10; st.height = Math.round(st.height / 2.54); }
+          else { st.weight = Math.round(st.weight / 2.20462 * 10) / 10; st.height = Math.round(st.height * 2.54); }
+        }
+        st[key] = b.dataset.v; save(); paint();
+      };
+    });
+  }
+  seg("sex", "sex"); seg("units", "units"); seg("goal", "goal");
+  ["age", "weight", "height"].forEach(function (id) {
+    $(id).addEventListener("input", function () { var v = parseFloat(this.value); if (!isNaN(v)) { st[id] = v; save(); compute(); } });
+  });
+  $("activity").addEventListener("change", function () { st.activity = this.value; save(); compute(); });
+
+  var C = 2 * Math.PI * 50;
+  function arc(el, start, frac) {
+    el.setAttribute("stroke-dasharray", (C * frac - 2).toFixed(2) + " " + C.toFixed(2));
+    el.setAttribute("stroke-dashoffset", (-C * start).toFixed(2));
+  }
+
+  function compute() {
+    var kg = st.units === "metric" ? st.weight : st.weight / 2.20462;
+    var cm = st.units === "metric" ? st.height : st.height * 2.54;
+    var bmr = 10 * kg + 6.25 * cm - 5 * st.age + (st.sex === "male" ? 5 : -161);
+    var tdee = bmr * parseFloat(st.activity);
+    var adj = st.goal === "lose" ? -500 : st.goal === "gain" ? 300 : 0;
+    var kcal = Math.max(1200, Math.round((tdee + adj) / 10) * 10);
+    $("kcal").textContent = kcal.toLocaleString("en-US");
+    $("carb").textContent = Math.round(kcal * .45 / 4) + " g";
+    $("prot").textContent = Math.round(kcal * .30 / 4) + " g";
+    $("fat").textContent = Math.round(kcal * .25 / 9) + " g";
+    $("goalText").textContent = st.goal === "lose" ? (st.units === "metric" ? "To lose about 0.5 kg a week" : "To lose about 1 lb a week") : st.goal === "gain" ? "To gain muscle slowly" : "To keep your weight steady";
+    $("note").textContent = "Maintenance about " + Math.round(tdee / 10) * 10 + " kcal. An estimate from the Mifflin-St Jeor formula, not medical advice.";
+    arc($("a1"), 0, .45); arc($("a2"), .45, .30); arc($("a3"), .75, .25);
+  }
+
+  function paint() {
+    ["sex", "units", "goal"].forEach(function (id) {
+      [].forEach.call($(id).children, function (b) { b.classList.toggle("on", b.dataset.v === st[id]); });
+    });
+    $("age").value = st.age; $("weight").value = st.weight; $("height").value = st.height; $("activity").value = st.activity;
+    $("wl").textContent = "Weight (" + (st.units === "metric" ? "kg" : "lb") + ")";
+    $("hl").textContent = "Height (" + (st.units === "metric" ? "cm" : "in") + ")";
+    compute();
+  }
+  paint();
+})();
+</script>
+</body>
+</html>

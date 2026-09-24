@@ -14,8 +14,8 @@
   :root[data-theme="dark"] { color-scheme: dark; --bg: #191919; }
   html, body { margin: 0; height: 100%; background: var(--bg); overflow: hidden; }
   /* Spotify picks its layout from the iframe height at load time and paints white below a
-     compact player, so the height is fixed: 352px (full player with track list) when the block
-     is tall enough, 152px (compact) otherwise. The page background fills any remaining space. */
+     compact player, so the player is either the full 352px one (scaled down to fit a 232-351px
+     block) or the compact 152px one in shorter blocks. The page background fills any remaining space. */
   iframe { display: block; width: 100%; height: 352px; border: 0; border-radius: 12px; }
 </style>
 </head>
@@ -28,7 +28,17 @@
   var list = (q.get("list") || "37i9dQZF1DWWQRwui0ExPn").replace(/[^A-Za-z0-9]/g, "");
   var type = q.get("type") === "album" ? "album" : "playlist";
   var f = document.getElementById("p");
-  f.style.height = (window.innerHeight >= 200 ? 352 : 152) + "px";
+  // Spotify only draws its full player (with the track list) at 352px; at any height between
+  // 152 and 352 it draws the compact player and paints white below. So a block of 232-351px gets
+  // the full 352px player scaled down to fit, instead of being cut off at the bottom.
+  var h = window.innerHeight;
+  if (h >= 352) f.style.height = "352px";
+  else if (h >= 232) {
+    var k = h / 352;
+    f.style.height = "352px"; f.style.width = (100 / k) + "%";
+    f.style.transform = "scale(" + k + ")"; f.style.transformOrigin = "0 0";
+    f.style.borderRadius = Math.round(12 / k) + "px";
+  } else f.style.height = "152px";
   f.src = "https://open.spotify.com/embed/" + type + "/" + list + "?utm_source=generator&theme=0";
 })();
 </script>

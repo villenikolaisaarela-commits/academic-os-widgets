@@ -46,6 +46,7 @@ All photos are from Unsplash (https://unsplash.com) under the free Unsplash Lice
 - recipe-lentil-curry: Yu Hosoi (https://unsplash.com/photos/2hqXWtbWqAk)
 - recipe-overnight-oats: Alisha Hieb (https://unsplash.com/photos/LzrMzmVWhJw)
 - recipe-pancakes: Mikki Speid (https://unsplash.com/photos/ULrVOx8PjUE)
+- recipe-omelette: Bakd&Raw by Karolin Baitinger (https://unsplash.com/photos/SCZP5rvZINk)
 - exercise-squat: Content Pixie (https://unsplash.com/photos/be-6rpnQ30k)
 - exercise-bench: Sven Mieke (https://unsplash.com/photos/BB3dR-N5Npg)
 - exercise-deadlift: Elena Kloppenburg (https://unsplash.com/photos/erUC4fTtCuo)

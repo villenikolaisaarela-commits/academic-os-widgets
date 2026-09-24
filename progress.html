@@ -33,7 +33,7 @@
   .name { font-weight: 600; }
   .pct { color: var(--muted); font-variant-numeric: tabular-nums; }
   .bar { grid-column: 1 / -1; height: 8px; border-radius: 99px; background: var(--track); overflow: hidden; }
-  .fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width .6s ease; }
+  .fill { height: 100%; width: 100%; border-radius: 99px; background: var(--accent); transform: scaleX(0); transform-origin: left center; transition: transform .6s ease; }
 </style>
 </head>
 <body>
@@ -49,7 +49,7 @@
   root.style.setProperty("--accent", "var(--" + a + ")");
   function set(k, f) {
     var p = Math.max(0, Math.min(1, f));
-    document.getElementById("b-" + k).style.width = (p * 100).toFixed(1) + "%";
+    document.getElementById("b-" + k).style.transform = "scaleX(" + p.toFixed(4) + ")";
     document.getElementById("p-" + k).textContent = Math.floor(p * 100) + "%";
   }
   function tick() {
